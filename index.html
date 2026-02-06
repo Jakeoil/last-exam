@@ -129,6 +129,39 @@ MathJax = {
     color: var(--text-dim);
     min-width: 80px;
     text-align: center;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .question-num-input {
+    width: 42px;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    padding: 2px 4px;
+    font-size: 13px;
+    text-align: center;
+    outline: none;
+    cursor: text;
+    -moz-appearance: textfield;
+  }
+
+  .question-num-input::-webkit-outer-spin-button,
+  .question-num-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .question-num-input:hover {
+    border-color: var(--accent);
+  }
+
+  .question-num-input:focus {
+    border-style: solid;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
   }
 
   .shuffle-btn {
@@ -436,7 +469,7 @@ MathJax = {
     <button class="shuffle-btn" id="shuffleBtn" title="Shuffle">Shuffle</button>
     <div class="nav-row">
       <button class="nav-btn" id="prevBtn">&larr; Prev</button>
-      <span class="question-counter" id="questionCounter">1 / 2500</span>
+      <span class="question-counter" id="questionCounter"><input type="number" class="question-num-input" id="questionNumInput" value="1" min="1"> / <span id="questionTotal">2500</span></span>
       <button class="nav-btn" id="nextBtn">Next &rarr;</button>
     </div>
   </div>
@@ -498,8 +531,10 @@ function applyFilters() {
 }
 
 function updateCounter() {
-  document.getElementById('questionCounter').textContent =
-    filtered.length ? `${currentIdx + 1} / ${filtered.length}` : '0 / 0';
+  const numInput = document.getElementById('questionNumInput');
+  numInput.value = filtered.length ? currentIdx + 1 : 0;
+  numInput.max = filtered.length;
+  document.getElementById('questionTotal').textContent = filtered.length;
   document.getElementById('prevBtn').disabled = currentIdx <= 0;
   document.getElementById('nextBtn').disabled = currentIdx >= filtered.length - 1;
 }
@@ -685,6 +720,16 @@ function bindEvents() {
   document.getElementById('nextBtn').addEventListener('click', () => { if (currentIdx < filtered.length - 1) { currentIdx++; render(); } });
   document.getElementById('categoryFilter').addEventListener('change', () => { applyFilters(); render(); });
   document.getElementById('typeFilter').addEventListener('change', () => { applyFilters(); render(); });
+
+  const numInput = document.getElementById('questionNumInput');
+  numInput.addEventListener('change', () => {
+    let val = parseInt(numInput.value, 10);
+    if (isNaN(val) || val < 1) val = 1;
+    if (val > filtered.length) val = filtered.length;
+    currentIdx = val - 1;
+    render();
+  });
+  numInput.addEventListener('focus', () => numInput.select());
 
   let searchTimeout;
   document.getElementById('searchInput').addEventListener('input', () => {
