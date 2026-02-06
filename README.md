@@ -2,13 +2,28 @@
 
 A web-based viewer for the [Humanity's Last Exam](https://huggingface.co/datasets/centerforaisafety/hle) (HLE) benchmark dataset, which contains 2,500 expert-level questions across math, science, humanities, and more.
 
-## Running
+## Setup
 
-Start a local server and open in your browser:
+1. Download the parquet file from [HuggingFace](https://huggingface.co/datasets/centerforaisafety/hle):
+
+2. Install dependencies and convert to JSON:
+
+```bash
+pip install pandas pyarrow
+python convert.py test-00000-of-00001.parquet
+```
+
+3. Start a local server and open in your browser:
 
 ```bash
 python3 -m http.server 8080
 open http://localhost:8080
+```
+
+The `convert.py` script reads the parquet file and produces `questions.json`, which the web viewer loads. You can also specify a custom output path:
+
+```bash
+python convert.py test-00000-of-00001.parquet my_output.json
 ```
 
 ## What is a Parquet File?
