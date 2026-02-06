@@ -572,7 +572,7 @@ function render() {
         }
         return `<label class="${cls}" data-letter="${c.letter}">
           <span class="mc-letter">${c.letter}</span>
-          <span>${escapeHTML(c.text)}</span>
+          <span>${escapeHTML(wrapBareLaTeX(c.text))}</span>
         </label>`;
       }).join('') + `</div>`;
   } else {
@@ -586,20 +586,20 @@ function render() {
   if (isAnswered) {
     resultHTML = prev.correct
       ? `<div class="result-banner correct">Correct!</div>`
-      : `<div class="result-banner wrong">Incorrect. The answer is: ${escapeHTML(q.answer)}</div>`;
+      : `<div class="result-banner wrong">Incorrect. The answer is: ${escapeHTML(wrapBareLaTeX(q.answer))}</div>`;
   }
 
   let rationaleHTML = '';
   if ((isAnswered || isRevealed) && q.rationale) {
     rationaleHTML = `<div class="rationale-section visible">
       <h4>Rationale</h4>
-      <p>${escapeHTML(q.rationale)}</p>
+      <p>${escapeHTML(wrapBareLaTeX(q.rationale))}</p>
     </div>`;
   }
 
   if (isRevealed && !isAnswered) {
     resultHTML = `<div class="result-banner correct" style="color:var(--orange);border-color:var(--orange);background:rgba(251,191,36,0.08);">
-      Answer: ${escapeHTML(q.answer)}</div>`;
+      Answer: ${escapeHTML(wrapBareLaTeX(q.answer))}</div>`;
   }
 
   const questionBody = q.answer_type === 'multipleChoice'
@@ -615,7 +615,7 @@ function render() {
       ${q.author ? `<span style="font-size:12px;color:var(--text-dim);">by ${escapeHTML(q.author)}</span>` : ''}
     </div>
     <div class="card-body">
-      <div class="question-text">${escapeHTML(questionBody)}</div>
+      <div class="question-text">${escapeHTML(wrapBareLaTeX(questionBody))}</div>
       ${q.image ? `<div class="question-image"><img src="${q.image}" alt="Question image" loading="lazy"></div>` : ''}
     </div>
     <div class="answer-section">
@@ -713,6 +713,36 @@ function stripChoicesFromQuestion(text) {
 function escapeHTML(s) {
   if (!s) return '';
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Wrap bare LaTeX (not already inside \(\), \[\], or $$) in \( \) delimiters.
+// Matches: \command sequences, subscript/superscript chains, and runs of
+// adjacent math tokens like "A_i^\dagger A_j".
+function wrapBareLaTeX(s) {
+  if (!s) return s;
+  // Split text into already-delimited math regions and plain text regions.
+  // Preserve \(...\), \[...\], and $...$ as-is.
+  const parts = [];
+  const mathDelim = /(\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$|\$[^$]+?\$)/g;
+  let last = 0;
+  let m;
+  while ((m = mathDelim.exec(s)) !== null) {
+    if (m.index > last) parts.push({ text: s.slice(last, m.index), isMath: false });
+    parts.push({ text: m[0], isMath: true });
+    last = m.index + m[0].length;
+  }
+  if (last < s.length) parts.push({ text: s.slice(last), isMath: false });
+
+  // In plain text regions, find bare LaTeX tokens and wrap them.
+  // A token is: optional word chars, then subscript/superscript and/or backslash-command,
+  // possibly chained (e.g. "A_i^\dagger" or "A_{ab}" or "\neq" or "tr(A_i^\dagger A_j)")
+  const latexToken = /(?:[A-Za-z0-9]+(?:[_^](?:\{[^}]*\}|[A-Za-z0-9]))+(?:\\[a-zA-Z]+)*|\\(?:neq|dagger|infty|frac|sqrt|sum|prod|int|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi|omega|cdot|ldots|cdots|times|leq|geq|subset|supset|subseteq|supseteq|cap|cup|wedge|vee|forall|exists|partial|nabla|ell|hbar|otimes|oplus|langle|rangle|mathbb|mathrm|mathcal|mathbf|operatorname|text|binom|choose|log|ln|exp|sin|cos|tan|det|dim|ker|mod|gcd|min|max|lim|sup|inf)(?:\{[^}]*\})*(?:[_^](?:\{[^}]*\}|[A-Za-z0-9]))*)/g;
+
+  return parts.map(p => {
+    if (p.isMath) return p.text;
+    // For each bare LaTeX match, wrap in \( \)
+    return p.text.replace(latexToken, (match) => '\\(' + match + '\\)');
+  }).join('');
 }
 
 function bindEvents() {
