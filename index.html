@@ -227,6 +227,32 @@ MathJax = {
 
   .card-body { padding: 24px 20px; }
 
+  .question-text code {
+    font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', monospace;
+    font-size: 0.9em;
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+  }
+
+  .question-text pre {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    overflow-x: auto;
+    margin: 8px 0;
+  }
+
+  .question-text pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
   .question-text {
     font-size: 16px;
     line-height: 1.7;
@@ -636,7 +662,7 @@ function render() {
         }
         return `<label class="${cls}" data-letter="${c.letter}">
           <span class="mc-letter">${c.letter}</span>
-          <span>${escapeHTML(wrapBareLaTeX(c.text))}</span>
+          <span>${renderCode(escapeHTML(wrapBareLaTeX(c.text)))}</span>
         </label>`;
       }).join('') + `</div>`;
   } else {
@@ -657,7 +683,7 @@ function render() {
   if ((isAnswered || isRevealed) && q.rationale) {
     rationaleHTML = `<div class="rationale-section visible">
       <h4>Rationale</h4>
-      <p>${escapeHTML(wrapBareLaTeX(q.rationale))}</p>
+      <p>${renderCode(escapeHTML(wrapBareLaTeX(q.rationale)))}</p>
     </div>`;
   }
 
@@ -679,7 +705,7 @@ function render() {
       ${q.author ? `<span style="font-size:12px;color:var(--text-dim);">by ${escapeHTML(q.author)}</span>` : ''}
     </div>
     <div class="card-body">
-      <div class="question-text">${renderFEN(escapeHTML(wrapBareLaTeX(questionBody)))}</div>
+      <div class="question-text">${renderCode(renderFEN(escapeHTML(wrapBareLaTeX(questionBody))))}</div>
       ${q.image ? `<div class="question-image"><img src="${q.image}" alt="Question image" loading="lazy"></div>` : ''}
     </div>
     <div class="answer-section">
@@ -784,10 +810,10 @@ function escapeHTML(s) {
 // adjacent math tokens like "A_i^\dagger A_j".
 function wrapBareLaTeX(s) {
   if (!s) return s;
-  // Split text into already-delimited math regions and plain text regions.
-  // Preserve \(...\), \[...\], and $...$ as-is.
+  // Split text into already-delimited math regions, code blocks, and plain text.
+  // Preserve \(...\), \[...\], $...$, and ```...``` as-is.
   const parts = [];
-  const mathDelim = /(\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$|\$[^$]+?\$)/g;
+  const mathDelim = /(```[\s\S]*?```|`[^`]+`|\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$|\$[^$]+?\$)/g;
   let last = 0;
   let m;
   while ((m = mathDelim.exec(s)) !== null) {
@@ -848,6 +874,14 @@ function renderFEN(s) {
     const board = fenToBoard(match.trim());
     return `</span><div class="fen-container"><div class="fen-label">${label}</div><div class="fen-board">${board}</div></div><span>`;
   });
+}
+
+function renderCode(s) {
+  // Fenced code blocks: ```...```
+  s = s.replace(/```(?:\w*)\n?([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+  // Inline code: `...`
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  return s;
 }
 
 function bindEvents() {
