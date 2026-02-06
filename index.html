@@ -437,6 +437,66 @@ MathJax = {
     font-size: 11px;
   }
 
+  .fen-board {
+    display: inline-grid;
+    grid-template-columns: repeat(8, 1fr);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    width: 240px;
+    height: 240px;
+    vertical-align: middle;
+    margin: 8px 4px;
+  }
+
+  .fen-board .sq {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    line-height: 1;
+    aspect-ratio: 1;
+  }
+
+  .fen-board .sq .pc {
+    font-family: 'DejaVu Sans', 'Segoe UI Symbol', sans-serif;
+    font-style: normal;
+  }
+
+  .fen-board .sq .pc.w {
+    color: #fff;
+    text-shadow:
+      -1px 0 1px rgba(0,0,0,0.6),
+       1px 0 1px rgba(0,0,0,0.6),
+       0 -1px 1px rgba(0,0,0,0.6),
+       0  1px 1px rgba(0,0,0,0.6);
+  }
+
+  .fen-board .sq .pc.b {
+    color: #1a1a1a;
+    text-shadow:
+      -1px 0 1px rgba(255,255,255,0.3),
+       1px 0 1px rgba(255,255,255,0.3),
+       0 -1px 1px rgba(255,255,255,0.3),
+       0  1px 1px rgba(255,255,255,0.3);
+  }
+
+  .fen-board .sq.light { background: #e8d5a8; }
+  .fen-board .sq.dark { background: #b58863; }
+
+  .fen-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-bottom: 2px;
+  }
+
+  .fen-container {
+    display: inline-block;
+    margin: 8px 8px 8px 0;
+    vertical-align: top;
+  }
+
   @media (max-width: 640px) {
     header { padding: 10px 12px; }
     main { padding: 16px 12px 80px; }
@@ -497,7 +557,10 @@ async function init() {
   const resp = await fetch('questions.json');
   allQuestions = await resp.json();
   populateFilters();
+  const saved = parseInt(localStorage.getItem('hle_currentIdx'), 10);
+  if (!isNaN(saved)) currentIdx = saved;
   applyFilters();
+  if (currentIdx >= filtered.length) currentIdx = 0;
   render();
   bindEvents();
 }
@@ -537,6 +600,7 @@ function updateCounter() {
   document.getElementById('questionTotal').textContent = filtered.length;
   document.getElementById('prevBtn').disabled = currentIdx <= 0;
   document.getElementById('nextBtn').disabled = currentIdx >= filtered.length - 1;
+  localStorage.setItem('hle_currentIdx', currentIdx);
 }
 
 function updateScores() {
@@ -615,7 +679,7 @@ function render() {
       ${q.author ? `<span style="font-size:12px;color:var(--text-dim);">by ${escapeHTML(q.author)}</span>` : ''}
     </div>
     <div class="card-body">
-      <div class="question-text">${escapeHTML(wrapBareLaTeX(questionBody))}</div>
+      <div class="question-text">${renderFEN(escapeHTML(wrapBareLaTeX(questionBody)))}</div>
       ${q.image ? `<div class="question-image"><img src="${q.image}" alt="Question image" loading="lazy"></div>` : ''}
     </div>
     <div class="answer-section">
@@ -745,6 +809,47 @@ function wrapBareLaTeX(s) {
   }).join('');
 }
 
+// Use filled glyphs (U+265A-265F) for all pieces; distinguish by CSS color class.
+const FEN_PIECES = {
+  'K': '♚', 'Q': '♛', 'R': '♜', 'B': '♝', 'N': '♞', 'P': '♟',
+  'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟'
+};
+
+function fenToBoard(fen) {
+  const placement = fen.split(' ')[0];
+  const rows = placement.split('/');
+  let html = '';
+  for (let r = 0; r < 8; r++) {
+    let col = 0;
+    for (const ch of rows[r]) {
+      if (ch >= '1' && ch <= '8') {
+        for (let n = 0; n < parseInt(ch); n++) {
+          const shade = (r + col) % 2 === 0 ? 'light' : 'dark';
+          html += `<div class="sq ${shade}"></div>`;
+          col++;
+        }
+      } else {
+        const shade = (r + col) % 2 === 0 ? 'light' : 'dark';
+        const side = ch >= 'A' && ch <= 'Z' ? 'w' : 'b';
+        html += `<div class="sq ${shade}"><span class="pc ${side}">${FEN_PIECES[ch] || ''}</span></div>`;
+        col++;
+      }
+    }
+  }
+  return html;
+}
+
+// Detect FEN strings in text and replace with rendered boards.
+// FEN pattern: 8 ranks separated by /, followed by side/castling/en-passant/clocks
+function renderFEN(s) {
+  const fenRegex = /([rnbqkpRNBQKP1-8]{1,8}\/){7}[rnbqkpRNBQKP1-8]{1,8}\s+[wb]\s+[KQkq-]{1,4}\s+[a-h1-8-]{1,2}\s+\d+\s+\d+/g;
+  return s.replace(fenRegex, (match) => {
+    const label = escapeHTML(match.trim());
+    const board = fenToBoard(match.trim());
+    return `</span><div class="fen-container"><div class="fen-label">${label}</div><div class="fen-board">${board}</div></div><span>`;
+  });
+}
+
 function bindEvents() {
   document.getElementById('prevBtn').addEventListener('click', () => { if (currentIdx > 0) { currentIdx--; render(); } });
   document.getElementById('nextBtn').addEventListener('click', () => { if (currentIdx < filtered.length - 1) { currentIdx++; render(); } });
@@ -752,12 +857,16 @@ function bindEvents() {
   document.getElementById('typeFilter').addEventListener('change', () => { applyFilters(); render(); });
 
   const numInput = document.getElementById('questionNumInput');
-  numInput.addEventListener('change', () => {
+  function jumpToNum() {
     let val = parseInt(numInput.value, 10);
     if (isNaN(val) || val < 1) val = 1;
     if (val > filtered.length) val = filtered.length;
     currentIdx = val - 1;
     render();
+  }
+  numInput.addEventListener('change', jumpToNum);
+  numInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); jumpToNum(); numInput.blur(); }
   });
   numInput.addEventListener('focus', () => numInput.select());
 
