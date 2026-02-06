@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Humanity's Last Exam</title>
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)'], ['$', '$']],
+    displayMath: [['\\[', '\\]'], ['$$', '$$']]
+  },
+  startup: { typeset: false }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
 <style>
   :root {
     --bg: #0e0e10;
@@ -607,6 +617,9 @@ function render() {
   document.getElementById('submitBtn').addEventListener('click', submit);
   document.getElementById('revealBtn').addEventListener('click', reveal);
   updateCounter();
+  if (window.MathJax && MathJax.typesetPromise) {
+    MathJax.typesetPromise([card]).catch(() => {});
+  }
 }
 
 function submit() {
@@ -641,26 +654,25 @@ function reveal() {
 }
 
 function parseChoices(text) {
+  // Extract the answer choices section
+  const choicesIdx = text.indexOf('Answer Choices:');
+  if (choicesIdx === -1) return [];
+  const choicesText = text.slice(choicesIdx);
+
+  // Split on choice letters at the start of a line, capturing multi-line content
   const choices = [];
-  const regex = /^([A-Z])[.)]\s*(.+)/gm;
-  let m;
-  while ((m = regex.exec(text)) !== null) {
-    choices.push({ letter: m[1], text: m[2].trim() });
+  const parts = choicesText.split(/^([A-Z])[.)]\s/m);
+  // parts: ["Answer Choices:\n", "A", "content...", "B", "content...", ...]
+  for (let i = 1; i < parts.length; i += 2) {
+    choices.push({ letter: parts[i], text: parts[i + 1].trim() });
   }
   return choices;
 }
 
 function stripChoicesFromQuestion(text) {
-  const lines = text.split('\n');
-  const result = [];
-  let hitChoices = false;
-  for (const line of lines) {
-    if (/^Answer Choices:/.test(line.trim())) { hitChoices = true; continue; }
-    if (hitChoices && /^[A-Z][.)]\s/.test(line.trim())) continue;
-    if (hitChoices && line.trim() === '') { hitChoices = false; continue; }
-    result.push(line);
-  }
-  return result.join('\n').trim();
+  const choicesIdx = text.indexOf('Answer Choices:');
+  if (choicesIdx === -1) return text;
+  return text.slice(0, choicesIdx).trim();
 }
 
 function escapeHTML(s) {
