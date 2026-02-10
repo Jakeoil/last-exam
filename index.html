@@ -580,13 +580,18 @@ let scores = { correct: 0, wrong: 0 };
 let answered = {};  // id -> { userAnswer, correct }
 
 async function init() {
-  const resp = await fetch('questions.json');
-  allQuestions = await resp.json();
+  try {
+    const resp = await fetch('questions.json');
+    allQuestions = await resp.json();
+  } catch (e) {
+    document.getElementById('questionCard').innerHTML =
+      '<div class="card-body" style="text-align:center;color:var(--red);padding:60px 20px;">Failed to load questions.json. Make sure to serve this page via HTTP (e.g. python3 -m http.server).</div>';
+    return;
+  }
   populateFilters();
-  const saved = parseInt(localStorage.getItem('hle_currentIdx'), 10);
-  if (!isNaN(saved)) currentIdx = saved;
   applyFilters();
-  if (currentIdx >= filtered.length) currentIdx = 0;
+  const saved = parseInt(localStorage.getItem('hle_currentIdx'), 10);
+  if (!isNaN(saved) && saved < filtered.length) currentIdx = saved;
   render();
   bindEvents();
 }
