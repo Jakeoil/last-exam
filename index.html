@@ -576,8 +576,13 @@ MathJax = {
 let allQuestions = [];
 let filtered = [];
 let currentIdx = 0;
-let scores = { correct: 0, wrong: 0 };
-let answered = {};  // id -> { userAnswer, correct }
+let scores = JSON.parse(localStorage.getItem('hle_scores') || '{"correct":0,"wrong":0}');
+let answered = JSON.parse(localStorage.getItem('hle_answered') || '{}');
+
+function saveState() {
+  localStorage.setItem('hle_scores', JSON.stringify(scores));
+  localStorage.setItem('hle_answered', JSON.stringify(answered));
+}
 
 async function init() {
   try {
@@ -592,6 +597,7 @@ async function init() {
   applyFilters();
   const saved = parseInt(localStorage.getItem('hle_currentIdx'), 10);
   if (!isNaN(saved) && saved < filtered.length) currentIdx = saved;
+  updateScores();
   render();
   bindEvents();
 }
@@ -771,6 +777,7 @@ function submit() {
   answered[q.id] = { userAnswer, correct, submitted: true };
   if (correct) scores.correct++;
   else scores.wrong++;
+  saveState();
   updateScores();
   render();
 }
@@ -780,6 +787,7 @@ function reveal() {
   if (!q) return;
   if (!answered[q.id]) answered[q.id] = {};
   answered[q.id].revealed = true;
+  saveState();
   render();
 }
 
@@ -875,7 +883,7 @@ function fenToBoard(fen) {
 function renderFEN(s) {
   const fenRegex = /([rnbqkpRNBQKP1-8]{1,8}\/){7}[rnbqkpRNBQKP1-8]{1,8}\s+[wb]\s+[KQkq-]{1,4}\s+[a-h1-8-]{1,2}\s+\d+\s+\d+/g;
   return s.replace(fenRegex, (match) => {
-    const label = escapeHTML(match.trim());
+    const label = match.trim();
     const board = fenToBoard(match.trim());
     return `</span><div class="fen-container"><div class="fen-label">${label}</div><div class="fen-board">${board}</div></div><span>`;
   });
@@ -897,6 +905,7 @@ function bindEvents() {
 
   const numInput = document.getElementById('questionNumInput');
   function jumpToNum() {
+    if (!filtered.length) return;
     let val = parseInt(numInput.value, 10);
     if (isNaN(val) || val < 1) val = 1;
     if (val > filtered.length) val = filtered.length;
@@ -926,7 +935,9 @@ function bindEvents() {
 
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-      if (e.key === 'Enter') { e.preventDefault(); submit(); }
+      if (e.key === 'Enter' && e.target.id !== 'searchInput' && e.target.id !== 'questionNumInput') {
+        e.preventDefault(); submit();
+      }
       return;
     }
     if (e.key === 'ArrowLeft') { if (currentIdx > 0) { currentIdx--; render(); } }
