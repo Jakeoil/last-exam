@@ -688,7 +688,7 @@ async function handleParquetFile(file) {
     const buffer = await file.arrayBuffer();
     progress.textContent = 'Decoding parquet (this may take a moment)...';
     await new Promise(r => setTimeout(r, 50));
-    const { parquetRead } = await import('https://cdn.jsdelivr.net/npm/hyparquet@1/src/hyparquet.min.js');
+    const { parquetRead } = await import('https://esm.run/hyparquet@1');
     const rows = [];
     await parquetRead({
       file: buffer,
