@@ -606,11 +606,6 @@ MathJax = {
   <span><kbd>R</kbd> Reveal</span>
 </div>
 
-<script type="module">
-import { parquetRead } from 'https://cdn.jsdelivr.net/npm/hyparquet@1/src/hyparquet.min.js';
-window._parquetRead = parquetRead;
-</script>
-
 <script>
 let allQuestions = [];
 let filtered = [];
@@ -692,9 +687,10 @@ async function handleParquetFile(file) {
   try {
     const buffer = await file.arrayBuffer();
     progress.textContent = 'Decoding parquet (this may take a moment)...';
-    await new Promise(r => setTimeout(r, 50)); // let UI update
+    await new Promise(r => setTimeout(r, 50));
+    const { parquetRead } = await import('https://cdn.jsdelivr.net/npm/hyparquet@1/src/hyparquet.min.js');
     const rows = [];
-    await window._parquetRead({
+    await parquetRead({
       file: buffer,
       columns: ['id', 'question', 'image', 'answer', 'answer_type', 'author_name', 'rationale', 'raw_subject', 'category'],
       onComplete: data => {
