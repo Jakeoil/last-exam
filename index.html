@@ -177,6 +177,19 @@ MathJax = {
 
   .shuffle-btn:hover { border-color: var(--orange); }
 
+  .clear-btn {
+    background: var(--surface);
+    color: var(--red);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .clear-btn:hover { border-color: var(--red); }
+
   main {
     max-width: 860px;
     margin: 0 auto;
@@ -587,6 +600,7 @@ MathJax = {
     </select>
     <input type="text" class="search-input" id="searchInput" placeholder="Search questions...">
     <button class="shuffle-btn" id="shuffleBtn" title="Shuffle">Shuffle</button>
+    <button class="clear-btn" id="clearBtn" title="Clear cached data and reset">Clear data</button>
     <div class="nav-row">
       <button class="nav-btn" id="prevBtn">&larr; Prev</button>
       <span class="question-counter" id="questionCounter"><input type="number" class="question-num-input" id="questionNumInput" value="1" min="1"> / <span id="questionTotal">2500</span></span>
@@ -655,9 +669,9 @@ function showDropZone() {
   card.innerHTML = `
     <div class="drop-zone" id="dropZone">
       <h2>Drop your <span class="accent">.parquet</span> file here</h2>
-      <p>Download the HLE dataset from
-        <a href="https://huggingface.co/datasets/centerforaisafety/hle" target="_blank" style="color:var(--accent);">HuggingFace</a>,
-        then drag and drop the <span class="accent">test-00000-of-00001.parquet</span> file onto this area.</p>
+      <p>Download <span class="accent">test-00000-of-00001.parquet</span> from
+        <a href="https://huggingface.co/datasets/cais/hle/tree/main/data" target="_blank" style="color:var(--accent);">HuggingFace</a>
+        (free account required), then drag and drop it here.</p>
       <p style="margin-top:8px;">The file is decoded locally in your browser. Nothing is uploaded.</p>
       <div class="progress" id="dropProgress"></div>
     </div>
@@ -1071,6 +1085,19 @@ function bindEvents() {
   document.getElementById('searchInput').addEventListener('input', () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => { applyFilters(); render(); }, 300);
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', async () => {
+    if (!confirm('Clear all cached data, scores, and answers?')) return;
+    try {
+      const db = await openDB();
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).clear();
+    } catch {}
+    localStorage.removeItem('hle_scores');
+    localStorage.removeItem('hle_answered');
+    localStorage.removeItem('hle_currentIdx');
+    location.reload();
   });
 
   document.getElementById('shuffleBtn').addEventListener('click', () => {
