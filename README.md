@@ -1,6 +1,8 @@
 # Humanity's Last Exam
 
-A web-based quiz viewer for the [Humanity's Last Exam](https://huggingface.co/datasets/cais/hle) (HLE) benchmark dataset — 2,500 expert-level questions across math, science, humanities, and more.
+A web-based quiz viewer for the [Humanity's Last Exam](https://lastexam.ai) (HLE) benchmark dataset — 2,500 expert-level questions across math, science, humanities, and more.
+
+HLE was created by the [Center for AI Safety](https://safe.ai) and [Scale AI](https://scale.com). See the [paper](https://lastexam.ai/paper) and [GitHub repo](https://github.com/centerforaisafety/hle) for details.
 
 ## Quick Start
 
@@ -12,7 +14,9 @@ A web-based quiz viewer for the [Humanity's Last Exam](https://huggingface.co/da
 
 3. **Drop the file** onto the page. It's decoded locally in your browser — nothing is uploaded.
 
-That's it. Your data is cached in the browser so you only need to drop the file once. Use the **Clear** button in the header to reset and re-upload if needed.
+That's it. Your data is cached in the browser so you only need to drop the file once. Use the **Clear data** button in the header to reset and re-upload if needed.
+
+> **Note:** The HLE dataset is provided under the [MIT License](https://choosealicense.com/licenses/mit/). The creators request that you do not publicly share, re-upload, or redistribute the dataset. This viewer does not host or distribute the data — you supply your own copy.
 
 ## Features
 
